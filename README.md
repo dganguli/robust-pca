@@ -40,5 +40,4 @@ plt.imshow(L)
 plt.subplot(1, 3, 3)
 plt.imshow(S)
 plt.show()
-
 ```
