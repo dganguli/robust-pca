@@ -25,19 +25,8 @@ D[S < 0.2] = 0
 # use R_pca to estimate the degraded data as L + S, where L is low rank, and S is sparse
 rpca = R_pca(D)
 L, S = rpca.fit(max_iter=10000, iter_print=100)
-rpca.plot_fit()
 
 # visually inspect results (requires matplotlib)
-from pylab import plt
-
-plt.figure()
-plt.subplot(1, 3, 1)
-plt.imshow(D)
-
-plt.subplot(1, 3, 2)
-plt.imshow(L)
-
-plt.subplot(1, 3, 3)
-plt.imshow(S)
+rpca.plot_fit()
 plt.show()
 ```
