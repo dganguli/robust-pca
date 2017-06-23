@@ -7,6 +7,13 @@ try:
 except ImportError:
     print('Unable to import pylab. R_pca.plot_fit() will not work.')
 
+try:
+    # Python 2: 'xrange' is the iterative version
+    range = xrange
+except NameError:
+    # Python 3: 'range' is iterative - no need for 'xrange'
+    pass
+
 
 class R_pca:
 
@@ -84,7 +91,7 @@ class R_pca:
         numplots = np.min([n, nrows * ncols])
         plt.figure()
 
-        for n in xrange(numplots):
+        for n in range(numplots):
             plt.subplot(nrows, ncols, n + 1)
             plt.ylim((ymin - tol, ymax + tol))
             plt.plot(self.L[n, :] + self.S[n, :], 'r')
