@@ -25,7 +25,7 @@ class R_pca:
         if mu:
             self.mu = mu
         else:
-            self.mu = np.prod(self.D.shape) / (4 * self.norm_p(self.D, 2))
+            self.mu = np.prod(self.D.shape) / (4 * self.frobenius_norm(self.D))
 
         self.mu_inv = 1 / self.mu
 
@@ -35,8 +35,8 @@ class R_pca:
             self.lmbda = 1 / np.sqrt(np.max(self.D.shape))
 
     @staticmethod
-    def norm_p(M, p):
-        return np.sum(np.power(M, p))
+    def frobenius_norm(M):
+        return np.linalg.norm(M, ord='fro')
 
     @staticmethod
     def shrink(M, tau):
@@ -56,7 +56,7 @@ class R_pca:
         if tol:
             _tol = tol
         else:
-            _tol = 1E-7 * self.norm_p(np.abs(self.D), 2)
+            _tol = 1E-7 * self.frobenius_norm(self.D)
 
         while (err > _tol) and iter < max_iter:
             Lk = self.svd_threshold(
@@ -64,7 +64,7 @@ class R_pca:
             Sk = self.shrink(
                 self.D - Lk + (self.mu_inv * Yk), self.mu_inv * self.lmbda)
             Yk = Yk + self.mu * (self.D - Lk - Sk)
-            err = self.norm_p(np.abs(self.D - Lk - Sk), 2)
+            err = self.frobenius_norm(self.D - Lk - Sk)
             iter += 1
             if (iter % iter_print) == 0 or iter == 1 or iter > max_iter or err <= _tol:
                 print('iteration: {0}, error: {1}'.format(iter, err))
