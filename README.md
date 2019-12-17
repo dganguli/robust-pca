@@ -1,7 +1,7 @@
 Robust-PCA
 ==========
 
-A Python implementation of R-PCA using principle component pursuit by alternating directions. The theory and implementation of the algorithm is described here: http://statweb.stanford.edu/~candes/papers/RobustPCA.pdf
+A Python implementation of R-PCA using principle component pursuit by alternating directions. The theory and implementation of the algorithm is described here: https://arxiv.org/pdf/0912.3599.pdf (doi > 10.1145/1970392.1970395)
 
 ```python
 # generate low rank synthetic data
