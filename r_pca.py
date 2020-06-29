@@ -58,12 +58,14 @@ class R_pca:
         else:
             _tol = 1E-7 * self.frobenius_norm(self.D)
 
+        #this loop implements the principal component pursuit (PCP) algorithm
+        #located in the table on page 29 of https://arxiv.org/pdf/0912.3599.pdf
         while (err > _tol) and iter < max_iter:
             Lk = self.svd_threshold(
-                self.D - Sk + self.mu_inv * Yk, self.mu_inv)
+                self.D - Sk + self.mu_inv * Yk, self.mu_inv)                            #this line implements step 3
             Sk = self.shrink(
-                self.D - Lk + (self.mu_inv * Yk), self.mu_inv * self.lmbda)
-            Yk = Yk + self.mu * (self.D - Lk - Sk)
+                self.D - Lk + (self.mu_inv * Yk), self.mu_inv * self.lmbda)             #this line implements step 4
+            Yk = Yk + self.mu * (self.D - Lk - Sk)                                      #this line implements step 5
             err = self.frobenius_norm(self.D - Lk - Sk)
             iter += 1
             if (iter % iter_print) == 0 or iter == 1 or iter > max_iter or err <= _tol:
