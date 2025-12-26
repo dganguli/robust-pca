@@ -1,14 +1,25 @@
 Robust-PCA
 ==========
 
-A Python implementation of R-PCA using principle component pursuit by alternating directions. The theory and implementation of the algorithm is described here: https://arxiv.org/pdf/0912.3599.pdf (doi > 10.1145/1970392.1970395)
+A Python implementation of Robust PCA using Principal Component Pursuit by alternating directions. The theory and implementation of the algorithm is described here: https://arxiv.org/pdf/0912.3599.pdf (doi: 10.1145/1970392.1970395)
+
+## Installation
+
+```bash
+pip install numpy
+pip install matplotlib  # optional, for plotting
+```
+
+## Usage
 
 ```python
+import numpy as np
+from r_pca import RobustPCA
+
 # generate low rank synthetic data
 N = 100
 num_groups = 3
 num_values_per_group = 40
-p_missing = 0.2
 
 Ds = []
 for k in range(num_groups):
@@ -17,16 +28,24 @@ for k in range(num_groups):
 
 D = np.hstack(Ds)
 
-# decimate 20% of data 
+# decimate 20% of data
 n1, n2 = D.shape
 S = np.random.rand(n1, n2)
 D[S < 0.2] = 0
 
-# use R_pca to estimate the degraded data as L + S, where L is low rank, and S is sparse
-rpca = R_pca(D)
+# use RobustPCA to estimate the degraded data as L + S, where L is low rank, and S is sparse
+rpca = RobustPCA(D)
 L, S = rpca.fit(max_iter=10000, iter_print=100)
 
 # visually inspect results (requires matplotlib)
+import matplotlib.pyplot as plt
 rpca.plot_fit()
 plt.show()
+```
+
+## Running Tests
+
+```bash
+pip install pytest
+pytest test_r_pca.py -v
 ```
