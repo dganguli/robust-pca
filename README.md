@@ -3,18 +3,10 @@ Robust-PCA
 
 A Python implementation of Robust PCA using Principal Component Pursuit by alternating directions. The theory and implementation of the algorithm is described here: https://arxiv.org/pdf/0912.3599.pdf (doi: 10.1145/1970392.1970395)
 
-## Installation
-
-```bash
-pip install numpy
-pip install matplotlib  # optional, for plotting
-```
-
 ## Usage
 
 ```python
-import numpy as np
-from r_pca import RobustPCA
+from r_pca import RobustPCA, np
 
 # generate low rank synthetic data
 N = 100
