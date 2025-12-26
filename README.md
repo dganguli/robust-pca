@@ -6,7 +6,7 @@ A Python implementation of Robust PCA using Principal Component Pursuit by alter
 ## Usage
 
 ```python
-from r_pca import RobustPCA, np
+from r_pca import RobustPCA
 
 # generate low rank synthetic data
 N = 100
