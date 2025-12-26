@@ -47,5 +47,5 @@ plt.show()
 
 ```bash
 pip install pytest
-pytest test_r_pca.py -v
+python -m pytest test_r_pca.py -v
 ```
