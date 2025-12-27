@@ -1,7 +1,7 @@
 Robust PCA
 ==========
 
-A Python implementation of Robust PCA using Principal Component Pursuit by alternating directions (ADMM). The theory and algorithm are described in: [Robust Principal Component Analysis?](https://arxiv.org/pdf/0912.3599.pdf) (Candes et al., 2009)
+A Python implementation of Robust PCA using Principal Component Pursuit by alternating directions (ADMM). The theory and algorithm are described in: [Robust Principal Component Analysis?](https://dl.acm.org/doi/10.1145/1970392.1970395) (Candès et al., 2011)
 
 ## What is Robust PCA?
 
@@ -128,47 +128,32 @@ Run the ADMM algorithm to decompose D = L + S.
 
 ## Implementation Notes
 
-This implementation follows **Algorithm 1** (Principal Component Pursuit by Alternating Directions) from page 29 of the [paper](https://arxiv.org/pdf/0912.3599.pdf), but uses an equivalent formulation with different sign conventions. Here's how the code maps to the paper:
+This implementation follows **Algorithm 1** (Principal Component Pursuit by Alternating Directions) from the [published paper](https://dl.acm.org/doi/10.1145/1970392.1970395) (Candès et al., 2011).
 
-### Paper's Algorithm 1
+> **Note:** The arXiv preprint (v1, 2009) contains a different formulation of the algorithm. This code implements the version from the final ACM publication, which has corrected signs in the ADMM updates.
 
-```
-1: initialize S₀ = Y₀ = 0, μ > 0
-2: while not converged do
-3:    L_{k+1} = D_μ(D - S_k - μ⁻¹Y_k)      # SVD thresholding
-4:    S_{k+1} = S_{λμ}(D - L_{k+1} + μ⁻¹Y_k)   # Soft thresholding
-5:    Y_{k+1} = Y_k + μ(D - L_{k+1} - S_{k+1})  # Dual update
-6: end while
-```
-
-### This Implementation
+### Algorithm
 
 ```python
-L = svd_threshold(D - S + μ⁻¹Y, μ⁻¹)    # Step 3
-S = shrink(D - L + μ⁻¹Y, λμ⁻¹)          # Step 4
-Y = Y + μ(D - L - S)                     # Step 5
+while not converged:
+    L = svd_threshold(D - S + μ⁻¹Y, μ⁻¹)    # Singular value thresholding
+    S = shrink(D - L + μ⁻¹Y, λμ⁻¹)          # Element-wise soft thresholding
+    Y = Y + μ(D - L - S)                     # Dual variable update
 ```
 
-### Key Differences
-
-| Aspect | Paper | This Code | Reason |
-|--------|-------|-----------|--------|
-| Y sign in L update | −μ⁻¹Y | +μ⁻¹Y | Different Lagrangian sign convention |
-| SVD threshold | μ | μ⁻¹ | Using standard ADMM proximal form |
-| Shrink threshold | λμ | λμ⁻¹ | Using standard ADMM proximal form |
-
-### Why the Difference?
-
-The paper uses a specific ADMM formulation where μ appears directly as the proximal threshold. This implementation uses the **standard ADMM form** where the threshold is 1/ρ (here, μ⁻¹). Both solve the same optimization problem:
+This solves the convex optimization problem:
 
 ```
 minimize  ||L||_* + λ||S||_1
 subject to  D = L + S
 ```
 
-The sign difference for Y in step 3 comes from using a symmetric Lagrangian formulation (standard in ADMM literature) versus the paper's asymmetric form. Since Y is a dual variable initialized to zero and updated iteratively, this sign convention difference doesn't affect the final solution.
+where `||L||_*` is the nuclear norm (sum of singular values) and `||S||_1` is the element-wise L1 norm.
 
-The algorithm converges to the same optimal L and S as the paper describes.
+### Default Parameters
+
+- `μ = (n × m) / (4 × ||D||_1)` — controls convergence rate
+- `λ = 1 / √(max(n, m))` — balances low-rank vs sparse (from the paper's theoretical results)
 
 ## Running Tests
 
@@ -178,4 +163,4 @@ python -m pytest test_r_pca.py -v
 
 ## References
 
-- Candès, E. J., Li, X., Ma, Y., & Wright, J. (2011). Robust Principal Component Analysis? *Journal of the ACM*, 58(3), 1-37. [arXiv:0912.3599](https://arxiv.org/abs/0912.3599)
+- Candès, E. J., Li, X., Ma, Y., & Wright, J. (2011). Robust Principal Component Analysis? *Journal of the ACM*, 58(3), 1-37. [ACM](https://dl.acm.org/doi/10.1145/1970392.1970395) | [arXiv](https://arxiv.org/abs/0912.3599)

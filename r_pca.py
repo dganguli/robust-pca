@@ -44,8 +44,8 @@ class RobustPCA:
         else:
             _tol = 1E-7 * self.frobenius_norm(self.D)
 
-        #this loop implements the principal component pursuit (PCP) algorithm
-        #located in the table on page 29 of https://arxiv.org/pdf/0912.3599.pdf
+        # Principal Component Pursuit by Alternating Directions (ADMM)
+        # Algorithm 1 from Candès et al., 2011 (https://dl.acm.org/doi/10.1145/1970392.1970395)
         while err > _tol and n_iter < max_iter:
             Lk = self.svd_threshold(
                 self.D - Sk + self.mu_inv * Yk, self.mu_inv)                            #this line implements step 3
