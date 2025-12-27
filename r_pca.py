@@ -1,10 +1,5 @@
 import numpy as np
 
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    print('Unable to import matplotlib. RobustPCA.plot_fit() will not work.')
-
 
 class RobustPCA:
 
@@ -65,29 +60,3 @@ class RobustPCA:
         self.L = Lk
         self.S = Sk
         return Lk, Sk
-
-    def plot_fit(self, size=None, tol=0.1, axis_on=True):
-
-        n, d = self.D.shape
-
-        if size is not None:
-            nrows, ncols = size
-        else:
-            sq = np.ceil(np.sqrt(n))
-            nrows = int(sq)
-            ncols = int(sq)
-
-        ymin = np.nanmin(self.D)
-        ymax = np.nanmax(self.D)
-        print(f'ymin: {ymin}, ymax: {ymax}')
-
-        numplots = np.min([n, nrows * ncols])
-        plt.figure()
-
-        for i in range(numplots):
-            plt.subplot(nrows, ncols, i + 1)
-            plt.ylim((ymin - tol, ymax + tol))
-            plt.plot(self.L[i, :] + self.S[i, :], 'r')
-            plt.plot(self.L[i, :], 'b')
-            if not axis_on:
-                plt.axis('off')

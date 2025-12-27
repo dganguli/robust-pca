@@ -42,8 +42,8 @@ data = np.hstack([
     np.ones((100, 40)) * 30   # Group 3: all 30s
 ])
 
-# Corrupt 20% of entries
-mask = np.random.rand(*data.shape) < 0.2
+# Corrupt 5% of entries
+mask = np.random.rand(*data.shape) < 0.05
 data[mask] = 0
 
 # Decompose into low-rank + sparse
@@ -61,25 +61,35 @@ L, S = rpca.fit(max_iter=500)
 Full working version of the usage example above, with visualization:
 
 ```bash
-python examples/readme_example.py
+python -m examples.readme_example
 ```
 
 ![readme_example_result](examples/readme_example_result.png)
 
-### 2. Video Background/Foreground Separation (examples/video_separation.py)
+| Metric | Value |
+|--------|-------|
+| ‖D - (L+S)‖_F | ≈ 0.0001 |
+| ‖D - (L+S)‖_F / ‖D‖_F | ≈ 10⁻⁸ |
 
-The classic RPCA application: given a video (matrix where each row is a frame), separate the static background from moving objects.
+### 2. Image Watermark Removal (examples/image_watermark_removal.py)
+
+RPCA can separate sparse corruptions (text/watermarks) from the underlying low-rank image structure.
 
 ```bash
-python examples/video_separation.py
+python -m examples.image_watermark_removal
 ```
 
-![video_separation_result](examples/video_separation_result.png)
+![image_watermark_result](examples/image_watermark_result.png)
+
+| Metric | Value |
+|--------|-------|
+| ‖D - (L+S)‖_F | ≈ 0.00001 |
+| ‖D - (L+S)‖_F / ‖D‖_F | ≈ 10⁻⁷ |
 
 **How it works:**
-- Stack video frames as rows of matrix D
-- Background appears in every frame → low-rank component L
-- Moving objects are in different positions each frame → sparse component S
+- Natural images have low-rank structure (smooth gradients, repeated patterns)
+- Text/watermarks are sparse (only affect a small fraction of pixels)
+- L recovers the clean image, S extracts the watermark
 
 ## API Reference
 
@@ -95,10 +105,6 @@ python examples/video_separation.py
 Run the ADMM algorithm to decompose D = L + S.
 
 **Returns:** `(L, S)` - the low-rank and sparse components
-
-### `plot_fit(size=None, tol=0.1, axis_on=True)`
-
-Visualize the decomposition (requires matplotlib).
 
 ## Implementation Notes
 

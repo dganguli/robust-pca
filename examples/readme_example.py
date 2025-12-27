@@ -1,9 +1,10 @@
 """
-README Example - Direct copy from README to verify it works.
+README Example - Basic recovery of corrupted low-rank data.
+
+How to run:
+    python -m examples.readme_example
 """
-import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
@@ -22,43 +23,63 @@ for k in range(num_groups):
 
 D = np.hstack(Ds)
 
-# Store clean version
-D_clean = D.copy()
-
-# decimate 20% of data
+# decimate 5% of data
 n1, n2 = D.shape
 S = np.random.rand(n1, n2)
-D[S < 0.2] = 0
+D[S < 0.05] = 0
 
 # use RobustPCA to estimate the degraded data as L + S, where L is low rank, and S is sparse
 rpca = RobustPCA(D)
 L, S = rpca.fit(max_iter=500, iter_print=50)
 
-# Calculate MSE
-mse_corrupted = np.mean((D - D_clean) ** 2)
-mse_recovered = np.mean((L - D_clean) ** 2)
-print(f"\nMSE (corrupted vs clean): {mse_corrupted:.4f}")
-print(f"MSE (recovered vs clean): {mse_recovered:.4f}")
-print(f"Improvement: {mse_corrupted/mse_recovered:.1f}x")
+# Calculate reconstruction error
+reconstruction = L + S
+reconstruction_error = np.linalg.norm(D - reconstruction, 'fro')
+relative_error = reconstruction_error / np.linalg.norm(D, 'fro')
 
-# Plot as images
-fig, axes = plt.subplots(1, 4, figsize=(14, 4))
+print(f"\nReconstruction Error ||D - (L+S)||_F: {reconstruction_error:.6f}")
+print(f"Relative Error ||D - (L+S)||_F / ||D||_F: {relative_error:.2e}")
 
-axes[0].imshow(D_clean, aspect='auto', cmap='viridis')
-axes[0].set_title('Original (Clean)')
-axes[0].set_xlabel('Columns')
-axes[0].set_ylabel('Rows')
+# Plot as images: D = L + S (matching README cartoon)
+fig = plt.figure(figsize=(14, 4))
 
-axes[1].imshow(D, aspect='auto', cmap='viridis')
-axes[1].set_title('Corrupted (20% zeros)')
+# Create grid: 3 images + 2 equation symbols
+gs = fig.add_gridspec(1, 5, width_ratios=[3, 0.5, 3, 0.5, 3], wspace=0.1)
 
-axes[2].imshow(L, aspect='auto', cmap='viridis')
-axes[2].set_title('Recovered (L)')
+# Use inferno colormap where black = 0
+# D and L share scale [0, 30], S uses [-30, 0] so negative corrections appear dark
+cmap = 'inferno'
+data_vmin, data_vmax = 0, 30
 
-axes[3].imshow(np.abs(S), aspect='auto', cmap='hot')
-axes[3].set_title('Sparse (S)')
+# D (corrupted input) - black spots are the zeros (corruptions)
+ax0 = fig.add_subplot(gs[0, 0])
+ax0.imshow(D, aspect='auto', cmap=cmap, vmin=data_vmin, vmax=data_vmax)
+ax0.set_title('D (Corrupted)', fontsize=14, fontweight='bold')
+ax0.set_xlabel('Columns')
+ax0.set_ylabel('Rows')
 
-plt.suptitle('Robust PCA: README Example', fontweight='bold')
-plt.tight_layout()
-plt.savefig(os.path.join(os.path.dirname(__file__), 'readme_example_result.png'), dpi=150)
+# "=" symbol
+ax_eq = fig.add_subplot(gs[0, 1])
+ax_eq.text(0.5, 0.5, '=', fontsize=32, fontweight='bold', ha='center', va='center')
+ax_eq.axis('off')
+
+# L (learned low-rank) - clean recovery, no black
+ax1 = fig.add_subplot(gs[0, 2])
+ax1.imshow(L, aspect='auto', cmap=cmap, vmin=data_vmin, vmax=data_vmax)
+ax1.set_title('L (Low-rank)', fontsize=14, fontweight='bold')
+ax1.set_xlabel('Columns')
+
+# "+" symbol
+ax_plus = fig.add_subplot(gs[0, 3])
+ax_plus.text(0.5, 0.5, '+', fontsize=32, fontweight='bold', ha='center', va='center')
+ax_plus.axis('off')
+
+# S (learned sparse) - negative values where corruption was, flip scale so negatives are dark
+ax2 = fig.add_subplot(gs[0, 4])
+ax2.imshow(-S, aspect='auto', cmap=cmap, vmin=data_vmin, vmax=data_vmax)
+ax2.set_title('S (Sparse)', fontsize=14, fontweight='bold')
+ax2.set_xlabel('Columns')
+
+plt.suptitle('Robust PCA: D = L + S', fontsize=16, fontweight='bold', y=1.02)
+plt.savefig(os.path.join(os.path.dirname(__file__), 'readme_example_result.png'), dpi=150, bbox_inches='tight')
 print("\nSaved to examples/readme_example_result.png")
