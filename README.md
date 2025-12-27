@@ -91,6 +91,26 @@ python -m examples.image_watermark_removal
 - Text/watermarks are sparse (only affect a small fraction of pixels)
 - L recovers the clean image, S extracts the watermark
 
+### 3. COIL-20 Multi-View Recovery (examples/coil20_recovery.py)
+
+Real photographs from the [Columbia Object Image Library](https://www.cs.columbia.edu/CAVE/software/softlib/coil-20.php). 72 views of a rotating object create natural low-rank structure.
+
+```bash
+python -m examples.coil20_recovery
+```
+
+![coil20_recovery_result](examples/coil20_recovery_result.png)
+
+| Metric | Value |
+|--------|-------|
+| ‖D - (L+S)‖_F / ‖D‖_F | ≈ 10⁻⁶ |
+| ‖L - D_clean‖_F / ‖D_clean‖_F | ≈ 0.13 |
+
+**How it works:**
+- 72 images of the same object from different angles → low-rank matrix
+- 5% of pixels corrupted (set to 0) → sparse component
+- RPCA recovers the clean images by exploiting multi-view redundancy
+
 ## API Reference
 
 ### `RobustPCA(D, mu=None, lmbda=None)`
