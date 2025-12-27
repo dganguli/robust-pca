@@ -154,7 +154,7 @@ class TestSvdThreshold:
 
 
 class TestFit:
-    """Tests for the fit method."""
+    """Tests for the fit method and decomposition correctness."""
 
     def test_fit_returns_correct_shapes(self):
         """Test that fit returns L and S with correct shapes."""
@@ -175,15 +175,13 @@ class TestFit:
         np.testing.assert_array_equal(rpca.S, S)
 
     def test_fit_convergence(self):
-        """Test that fit converges (error decreases)."""
+        """Test that fit converges to D = L + S."""
         np.random.seed(42)
         D = np.random.randn(20, 20)
         rpca = RobustPCA(D)
         L, S = rpca.fit(max_iter=100, iter_print=1000)
 
-        # Error should be small after convergence
-        err = RobustPCA.frobenius_norm(D - L - S)
-        assert err < 1e-5 * RobustPCA.frobenius_norm(D)
+        assert np.allclose(D, L + S, atol=1e-6)
 
     def test_fit_with_custom_tolerance(self):
         """Test fit with custom tolerance."""
@@ -191,27 +189,10 @@ class TestFit:
         rpca = RobustPCA(D)
         L, S = rpca.fit(tol=1e-3, max_iter=1000, iter_print=1000)
 
-        err = RobustPCA.frobenius_norm(D - L - S)
-        assert err <= 1e-3
-
-
-class TestDecomposition:
-    """Integration tests for low-rank + sparse decomposition."""
-
-    def test_decomposition_reconstruction(self):
-        """Test that D ≈ L + S after fitting."""
-        np.random.seed(42)
-        D = np.random.randn(20, 20)
-
-        rpca = RobustPCA(D)
-        L, S = rpca.fit(max_iter=500, iter_print=1000)
-
-        # Check decomposition: D ≈ L + S
-        reconstruction_error = RobustPCA.frobenius_norm(D - L - S)
-        assert reconstruction_error < 1e-5 * RobustPCA.frobenius_norm(D)
+        assert np.allclose(D, L + S, rtol=0, atol=1e-3)
 
     def test_low_rank_input_recovery(self):
-        """Test that low-rank input is recovered in L."""
+        """Test that pure low-rank input is recovered in L with S ≈ 0."""
         np.random.seed(42)
         # Create a rank-2 matrix
         U = np.random.randn(20, 2)
@@ -221,9 +202,101 @@ class TestDecomposition:
         rpca = RobustPCA(L_true)
         L, S = rpca.fit(max_iter=500, iter_print=1000)
 
-        # Reconstruction should be good
-        reconstruction_error = RobustPCA.frobenius_norm(L_true - L - S)
-        assert reconstruction_error < 1e-5 * RobustPCA.frobenius_norm(L_true)
+        # S should be nearly zero since input is purely low-rank
+        S_norm = RobustPCA.frobenius_norm(S)
+        L_true_norm = RobustPCA.frobenius_norm(L_true)
+        assert S_norm < 0.01 * L_true_norm, f"S should be near zero, got ||S||/||L_true|| = {S_norm/L_true_norm}"
+
+        # L should recover the original low-rank matrix
+        L_error = RobustPCA.frobenius_norm(L_true - L)
+        assert L_error < 0.01 * L_true_norm, f"L should match L_true, got ||L-L_true||/||L_true|| = {L_error/L_true_norm}"
+
+    def test_sparse_corruption_recovery(self):
+        """Test that sparse corruptions are captured in S."""
+        np.random.seed(42)
+        n = 50
+
+        # Create low-rank matrix (rank 3)
+        U = np.random.randn(n, 3)
+        V = np.random.randn(3, n)
+        L_true = U @ V
+
+        # Add sparse corruption (10% of entries)
+        S_true = np.zeros((n, n))
+        corruption_mask = np.random.rand(n, n) < 0.1
+        S_true[corruption_mask] = np.random.randn(corruption_mask.sum()) * 10
+
+        D = L_true + S_true
+
+        rpca = RobustPCA(D)
+        L, S = rpca.fit(max_iter=1000, iter_print=1000)
+
+        # Check reconstruction
+        assert np.allclose(D, L + S, atol=1e-6)
+
+        # L should be close to L_true (within 10% relative error)
+        L_error = np.linalg.norm(L - L_true) / np.linalg.norm(L_true)
+        assert L_error < 0.1, f"L should approximate L_true, got relative error {L_error}"
+
+        # S should be close to S_true (within 10% relative error)
+        S_error = np.linalg.norm(S - S_true) / np.linalg.norm(S_true)
+        assert S_error < 0.1, f"S should approximate S_true, got relative error {S_error}"
+
+    def test_L_is_low_rank(self):
+        """Test that the recovered L has low rank."""
+        np.random.seed(42)
+        n = 40
+
+        # Create rank-2 matrix with sparse corruption
+        U = np.random.randn(n, 2)
+        V = np.random.randn(2, n)
+        L_true = U @ V
+
+        # Add sparse corruption
+        S_true = np.zeros((n, n))
+        corruption_mask = np.random.rand(n, n) < 0.05
+        S_true[corruption_mask] = np.random.randn(corruption_mask.sum()) * 5
+
+        D = L_true + S_true
+
+        rpca = RobustPCA(D)
+        L, S = rpca.fit(max_iter=1000, iter_print=1000)
+
+        # Check that L has low rank (most singular values should be near zero)
+        singular_values = np.linalg.svd(L, compute_uv=False)
+        # Effective rank: count singular values > 1% of largest
+        threshold = 0.01 * singular_values[0]
+        effective_rank = np.sum(singular_values > threshold)
+
+        assert effective_rank <= 5, f"L should be low-rank, got effective rank {effective_rank}"
+
+    def test_S_is_sparse(self):
+        """Test that the recovered S is sparse."""
+        np.random.seed(42)
+        n = 40
+
+        # Create rank-2 matrix with sparse corruption
+        U = np.random.randn(n, 2)
+        V = np.random.randn(2, n)
+        L_true = U @ V
+
+        # Add sparse corruption (5% of entries)
+        S_true = np.zeros((n, n))
+        corruption_mask = np.random.rand(n, n) < 0.05
+        S_true[corruption_mask] = np.random.randn(corruption_mask.sum()) * 5
+
+        D = L_true + S_true
+
+        rpca = RobustPCA(D)
+        L, S = rpca.fit(max_iter=1000, iter_print=1000)
+
+        # Check sparsity of S: most entries should be near zero
+        S_flat = np.abs(S.flatten())
+        threshold = 0.01 * np.max(S_flat)
+        sparsity = np.mean(S_flat < threshold)
+
+        # S should be at least 80% sparse (entries near zero)
+        assert sparsity > 0.8, f"S should be sparse, got {sparsity*100:.1f}% near-zero entries"
 
     def test_different_matrix_sizes(self):
         """Test decomposition works for various matrix sizes."""
@@ -234,8 +307,7 @@ class TestDecomposition:
             rpca = RobustPCA(D)
             L, S = rpca.fit(max_iter=200, iter_print=1000)
 
-            reconstruction_error = RobustPCA.frobenius_norm(D - L - S)
-            assert reconstruction_error < 1e-5 * RobustPCA.frobenius_norm(D)
+            assert np.allclose(D, L + S, atol=1e-6)
 
     def test_reproducibility_with_seed(self):
         """Test that results are reproducible with same random seed."""
@@ -297,8 +369,7 @@ class TestEdgeCases:
         L, S = rpca.fit(max_iter=500, iter_print=1000)
 
         # D = L + S should hold
-        reconstruction_error = RobustPCA.frobenius_norm(D - L - S)
-        assert reconstruction_error < 1e-5
+        assert np.allclose(D, L + S, rtol=0, atol=1e-5)
 
 
 if __name__ == '__main__':
